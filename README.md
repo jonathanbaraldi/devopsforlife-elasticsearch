@@ -2,7 +2,6 @@
 
 Este repositório é usado na comunidade DevOps for Life.
 
-
 # Kubernetes Logs - ElasticSearch em produção
 
 1) Introdução, explicar o que iremos fazer.
@@ -11,7 +10,7 @@ Este repositório é usado na comunidade DevOps for Life.
 4) Deploy do rancher
 5) K8S-infra - Deployment do cluster
 6) Deploy do longhorn - Cluster Infra
-7) deploy do nginx configuração do dns com ElastiSearch
+7) deploy do nginx configuração do dns
 8) Deploy do ElasticSearch
 9) Deploy do Kibana
 10) K8S-dev
@@ -22,22 +21,17 @@ Este repositório é usado na comunidade DevOps for Life.
 15) PROD-fluentd
 16) Revisão
 
-
-
 # Parte 4 - Deployment do RancherServer
 
 ## 4.1 - Criação de usuário do IAM e permissões e configuração da AWS-CLI
 
 https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 
-
 ## 4.2 - Criação da instância do RancherServer pela aws-cli.
 
 Estou usando Região de Ohio. US-EAST-2
 
-
 ```sh 
-
 # RANCHER SERVER
 
 # --image-id              ami-0a59f0e26c55590e9 - ubuntu 18 LTS
@@ -87,17 +81,11 @@ Instalar o kubectl
 https://kubernetes.io/docs/tasks/tools/
 
 
-
-
 # Parte 6 - Deploy Longhorn
 
 
 
-
-
 # Parte 7 - DNS e nginx
-
-
 
 
 
@@ -115,17 +103,13 @@ $ ./get_helm.sh
 ```
 
 
-
 ```sh
 kubectl create namespace logging
 
 echo -n "elastic" | base64
 echo -n "1qazXSW@3edc" | base64
 
-
 kubectl apply -f elastic-credentials.yaml
-
-
 
 helm repo add elastic https://helm.elastic.co
 helm repo update
@@ -139,7 +123,13 @@ helm upgrade elk-elasticsearch elastic/elasticsearch -f elastic-no-cert.yaml --n
 # 8RgywcrHTvK0X47fF6Um
 # elastic
 
+```
 
+
+# Parte 9 - Deploy Kibana
+
+
+```sh 
 
 helm delete elk-elasticsearch --namespace logging 
 
@@ -150,95 +140,69 @@ helm upgrade elk-kibana elastic/kibana -f kibana-no-cert.yaml -n logging
 helm delete elk-kibana -n logging
 ```
 
-
-
-
-
-
-
-
-
-
-
-# Roteiro
-
-O que iremos fazer?
-
-## Parte 1
-1. Criação de usuário do IAM e permissões
-2. Criação da instância do RancherServer pela aws-cli
-3. Configuração do Rancher.
-4. Configuração do Cluster Kubernetes.
-5. Deployment do cluster pela aws-cli.
-
-
-
-## Parte 2
-6. Configuração do Traefik
-7. Configuração do Longhorn
-8. Criação do certificado não válido
-9. Configuração do ELB
-10. Configuração do Route 53
-
-
-Parabéns, com isso temos a primera parte da nossa infraestrutura. 
-Estamos prontos para rodar nossa aplicação.
-
-
-
-
-
-
-## 3 - Configuração do Rancher
-Acessar o Rancher e configurar
-
-https://3.134.108.244
-
-## 4 - Configuração do Cluster Kubernetes.
-Criar o cluster pelo Rancher e configurar.
-
-
-
-## 5 - Deployment do cluster pela aws-cli
+# Parte 10 - fluentd-infra
 
 ```sh
-# --image-id ami-01e7ca2ef94a0ae86
-# --count 3 
-# --instance-type t3.large 
-# --key-name multicloud 
-# --security-group-ids sg-0b0e8363b215900f0 
-# --subnet-id subnet-09c5a4961e6056757 
-# --user-data file://k8s.sh
-
-$ aws ec2 run-instances --image-id ami-01e7ca2ef94a0ae86 --count 3 --instance-type t3.large --key-name multicloud --security-group-ids sg-0b0e8363b215900f0 --subnet-id subnet-67c83f0e --user-data file://k8s.sh   --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 70 } } ]" --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=k8s}]' 'ResourceType=volume,Tags=[{Key=Name,Value=k8s}]'     
-```
-
-Instalar o kubectl 
-
-https://kubernetes.io/docs/tasks/tools/
-
-
-# Parte 2
-
-## 6 - Configuração do Traefik
-
-O Traefik é a aplicação que iremos usar como ingress. Ele irá ficar escutando pelas entradas de DNS que o cluster deve responder. Ele possui um dashboard de  monitoramento e com um resumo de todas as entradas que estão no cluster.
-```sh
-$ kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
-$ kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-ds.yaml
-$ kubectl --namespace=kube-system get pods
-```
-Agora iremos configurar o DNS pelo qual o Traefik irá responder. No arquivo ui.yml, localizar a url, e fazer a alteração. Após a alteração feita, iremos rodar o comando abaixo para aplicar o deployment no cluster.
-```sh
-$ kubectl apply -f traefik.yaml
+kubectl apply -f fluentd-infra.yaml
 ```
 
 
-## 7 - Configuração do Longhorn
-Pelo console do Rancher
+
+# Parte 11 - K8S-dev
+
+```sh
+aws ec2 run-instances --image-id ami-0a59f0e26c55590e9 --count 3 --instance-type t3.large --key-name elasticsearch --security-group-ids sg-0b0e8363b215900f0 --subnet-id subnet-67c83f0e --user-data file://k8s-infra-worker.sh   --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 100 } } ]" --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=k8s}]' 'ResourceType=volume,Tags=[{Key=Name,Value=k8s-infra}]'  
+```
+
+# Parte 12 - fluentd-dev
+```sh
+kubectl apply -f fluentd-dev.yaml
+```
+
+Deploy de aplicação log generator para enviar os logs e testar.
+```sh
+kubectl apply -f log-generator-dev.yaml
+```
 
 
-## 8 - Criação do certificado
+# Parte 13 - K8S-QA
+
+# Parte 14 - fluentd-qa
+```sh
+kubectl apply -f fluentd-qa.yaml
+```
+
+Deploy de aplicação log generator para enviar os logs e testar.
+```sh
+kubectl apply -f log-generator-dev.yaml
+```
+
+# Parte 15 - K8S-prod
+
+
+# Parte 16 - fluentd-prod
+```sh
+kubectl apply -f fluentd-prod.yaml
+```
+Deploy de aplicação log generator para enviar os logs e testar.
+```sh
+kubectl apply -f log-generator-dev.yaml
+```
+
+# Parte 17 - Dashboards, testes, aplication deployment
+Construir os dashboards dos namespaces, e fazer o deploy das aplicações nos clusters.
+
+
+# Parte 18 - Revisão
+
+
+
+
+
+# Próxima aula - Certificado
+
+===============================================================
+
 Criar certificado para nossos dominios:
 
  *.devops-ninja.ml
@@ -257,57 +221,6 @@ Email Address []:webmaster@example.com
 
 arn:aws:acm:us-east-2:984102645395:certificate/ffdf5439-9d21-421e-b730-0dadb52bbd01
 
-
-## 9 - Configuração do ELB
-
-
-```sh
-# LOAD BALANCER
-
-# !! ESPECIFICAR O SECURITY GROUPS DO LOAD BALANCER
-
-# --subnets subnet-4f5e7705 subnet-67c83f0e
-
-$ aws elbv2 create-load-balancer --name multicloud --type application --subnets subnet-4f5e7705 subnet-67c83f0e
-#	 "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-2:984102645395:loadbalancer/app/multicloud/1a4af5c3698503fb"
-
-# --vpc-id vpc-238e664a
-
-$ aws elbv2 create-target-group --name multicloud --protocol HTTP --port 80 --vpc-id vpc-238e664a --health-check-port 8080 --health-check-path /api/providers
-#	 "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-2:984102645395:targetgroup/multicloud/0e70910ded08498f"
-	
-	
-# REGISTRAR OS TARGETS  
-$ aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-2:984102645395:targetgroup/multicloud/0e70910ded08498f --targets Id=i-04c0b078f1ef0968c Id=i-014c4de5f78e1d911 Id=i-0aea6b0657ad26b34
-
-
-i-04c0b078f1ef0968c
-i-014c4de5f78e1d911
-i-0aea6b0657ad26b34
-
-
-# ARN DO Certificado - arn:aws:acm:us-east-1:984102645395:certificate/fa016001-254f-4127-b51a-61588b15c555
-# HTTPS - CRIADO PRIMEIRO
-$ aws elbv2 create-listener \
-    --load-balancer-arn arn:aws:elasticloadbalancing:us-east-2:984102645395:loadbalancer/app/multicloud/1a4af5c3698503fb \
-    --protocol HTTPS \
-    --port 443 \
-    --certificates CertificateArn=arn:aws:acm:us-east-2:984102645395:certificate/ffdf5439-9d21-421e-b730-0dadb52bbd01   \
-    --ssl-policy ELBSecurityPolicy-2016-08 --default-actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-east-2:984102645395:targetgroup/multicloud/0e70910ded08498f
-#  "ListenerArn": "arn:aws:elasticloadbalancing:us-east-2:984102645395:listener/app/multicloud/1a4af5c3698503fb/0ba2e3ab81d739b7"
-
-
-$ aws elbv2 describe-target-health --target-group-arn targetgroup-arn
-
-# DESCRIBE NO LISTENER
-$ aws elbv2 describe-listeners --listener-arns arn:aws:elasticloadbalancing:us-east-1:984102645395:listener/app/multicloud/0c7e036793bff35e/a7386cf3e0dc3c0e
-
-
-```
-
-
-## 10 - Configuração do Route 53
-Pelo console da AWS
 
 
 
