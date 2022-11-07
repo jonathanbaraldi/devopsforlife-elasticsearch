@@ -1,0 +1,57 @@
+---
+clusterName: "elasticsearch"
+nodeGroup: "master"
+
+# The service that non master groups will try to connect to when joining the cluster
+# This should be set to clusterName + "-" + nodeGroup for your master group
+masterService: ""
+
+# Elasticsearch roles that will be applied to this nodeGroup
+# These will be set as environment variables. E.g. node.master=true
+
+
+replicas: 3 #3 PROD
+minimumMasterNodes: 1 #2 PROD
+            
+
+ingress:
+  enabled: true
+  hosts:
+    - host: elastic.k8s.devopsforlife.io #Change the hostname to the one you need
+      paths:
+        - path: /
+  #tls:
+  #  - secretName: wildcard-cert
+  #    hosts:
+  #      - elastic.infra.tce.pa
+
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+
+
+esConfig:
+  elasticsearch.yml: |
+    xpack.security.enabled: true
+extraEnvs:
+  - name: ELASTIC_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elastic-credentials
+        key: password
+  - name: ELASTIC_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: elastic-credentials
+        key: username
+
+resources:
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
