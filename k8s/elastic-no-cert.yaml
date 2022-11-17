@@ -9,7 +9,6 @@ masterService: ""
 # Elasticsearch roles that will be applied to this nodeGroup
 # These will be set as environment variables. E.g. node.master=true
 
-
 replicas: 3 #3 PROD
 minimumMasterNodes: 1 #2 PROD
             
@@ -29,7 +28,7 @@ volumeClaimTemplate:
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      storage: 2Gi
+      storage: 15Gi
 
 
 esConfig:
